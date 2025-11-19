@@ -1,0 +1,26 @@
+@media screen and (max-width: 800px) {
+    html{
+        font-size: 14px;
+    }
+    #container{
+        max-width: 100%; 
+    }
+    .image-box{
+        width: 100px;
+        height: 100px;
+    }
+    .image-box img{
+        margin: auto;
+        /* width: 100px; */
+        height: 100px;
+        object-fit: cover;
+    }
+    .info-details{
+        align-items: center;
+        text-align: justify;
+        max-width: calc(100% - 4% - 100px);
+        height: min-content;
+        margin: auto;
+        align-self: center;
+    }
+}
