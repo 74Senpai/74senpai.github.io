@@ -34,8 +34,7 @@
             const response = await fetch(apiUrl);
             const dataRaw = await response.json();
 
-            const data = JSON.stringify(dataRaw, null, 2);
-            alert(data.answer);
+            alert(dataRaw.answer);
         } catch (error) {
             alert("Lỗi khi gọi API: " + error);
         }
