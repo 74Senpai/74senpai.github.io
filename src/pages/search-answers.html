@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Search Answers</title>
+    <link rel="stylesheet" href="../../assets/styles/style.css">
+    <link rel="stylesheet" href="../styles/responsive.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <script src="https://kit.fontawesome.com/dae763dd72.js" crossorigin="anonymous"></script> -->
+</head>
+
+<body>
+    <header class="header"></header>
+    <main id="container" class="row">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Nhập từ khóa cần tìm...">
+            <button id="searchBtn">Search</button>
+        </div>
+    </main>
+
+    <footer class="footer"></footer>
+</body>
+
+<script>
+    document.getElementById("searchBtn").addEventListener("click", async () => {
+        const text = document.getElementById("searchInput").value.trim();
+
+        if (!text) {
+            alert("Vui lòng nhập nội dung tìm kiếm!");
+            return;
+        }
+        const apiUrl = `https://ragar.onrender.com/search/${text}`;
+        try {
+            const response = await fetch(apiUrl);
+            const dataRaw = await response.json();
+
+            const data = JSON.stringify(dataRaw, null, 2);
+            alert(data.answer);
+        } catch (error) {
+            alert("Lỗi khi gọi API: " + error);
+        }
+    });
+</script>
+
+</html>

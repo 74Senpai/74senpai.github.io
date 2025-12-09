@@ -70,3 +70,15 @@ a{
     background-color: black;
     width: 1px;
 }
+
+.label{
+    font-size: 1.6rem;
+    color: whitesmoke;
+    align-items: center;
+    align-content: center;
+    align-self: center;
+    margin: 1rem;
+    width: calc(100% - 2rem);
+    text-align: center;
+    grid-column: 1 / -1;
+}

@@ -5,6 +5,16 @@
     #container{
         max-width: 100%; 
     }
+    #container > *{
+        max-width: 100%; 
+    }
+    #projects{
+        margin: 0.5rem;
+        display: grid;
+        gap: 5px;
+        grid-template-columns: 1fr;
+        align-self: center;
+    }
     .image-box{
         width: 100px;
         height: 100px;
