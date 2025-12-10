@@ -25,6 +25,7 @@
                 <div class="progress-bar" role="progressbar"></div>
             </div>
         </form>
+        <div id="response">Câu trả lời nằm ở đây!</div>
     </main>
     <footer class="footer"></footer>
 </body>
@@ -83,21 +84,28 @@
     }
     wakeServer();
 
-    document.getElementById("searchBtn").addEventListener("click", async () => {
+    const btn_search = document.getElementById("searchBtn");
+    const responseBox = document.getElementById("response");
+    btn_search.addEventListener("click", async () => {
         const text = document.getElementById("searchInput").value.trim();
 
         if (!text) {
             alert("Vui lòng nhập nội dung tìm kiếm!");
             return;
         }
+        btn_search.disabled = true;
+        btn_search.textContent = "Đang tìm kiếm câu trả lời...";
         const apiUrl = `https://ragar.onrender.com/search/${text}`;
         try {
             const response = await fetch(apiUrl);
             const dataRaw = await response.json();
-
-            alert(dataRaw.answer);
+            // alert(dataRaw.answer);
+            responseBox.textContent = dataRaw.answer;
         } catch (error) {
             alert("Lỗi khi gọi API: " + error);
+        }finally{
+            btn_search.disabled = false;
+            btn_search.textContent = "Search";
         }
     });
     const form = document.getElementById('upload-form');
