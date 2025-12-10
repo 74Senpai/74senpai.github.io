@@ -20,7 +20,7 @@
             <input type="file" id="file-upload" name="file" accept=".pdf" aria-describedby="file-help" />
             <div id="file-help" class="form-text">Loại tệp chấp nhận: PDF (max 10MB)</div>
             <div class="warn">Không xử lý hình ảnh trong File, nếu PDF hoàn toàn là hình ảnh, vui lòng không Upload</div>
-            <button type="submit">Tải lên</button>
+            <button id="btn-upload" type="submit">Tải lên</button>
             <div id="upload-progress" class="progress" hidden>
                 <div class="progress-bar" role="progressbar"></div>
             </div>
@@ -101,8 +101,10 @@
         }
     });
     const form = document.getElementById('upload-form');
-
+    const btnUpload = document.getElementById('btn-upload');
     form.addEventListener('submit', async (e) => {
+        btnUpload.textContent = "Đợi xíu đang lưu file";
+        btnUpload.disabled = true;
         e.preventDefault();
         const formData = new FormData(form);
         try {
@@ -120,6 +122,8 @@
             console.error('Upload failed:', error);
             alert('Upload failed. Please try again.');
         } finally {
+            btnUpload.textContent = "Tải lên";
+            btnUpload.disabled = false;
             form.reset();
         }
     });

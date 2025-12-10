@@ -42,6 +42,11 @@ button {
     text-decoration: none;
 }
 
+button:disabled {
+    background: #6e6e6e !important;
+    cursor: not-allowed;
+}
+
 input {
     padding: 8px 18px;
     border-radius: 8px;
