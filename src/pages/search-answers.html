@@ -55,30 +55,6 @@
         return false;
     }
 
-    function startCheckingServer() {
-        if (checkInterval) return;
-
-        headerEl.textContent = "Chờ server thức giấc";
-
-        checkInterval = setInterval(async () => {
-            dotCount++;
-            updateHeader(`Chờ server thức giấc${".".repeat(dotCount)}`);
-
-            try {
-                const res = await fetch(PING_URL);
-                const data = await res.json();
-
-                if (data?.message) {
-                    updateHeader("Server đã sẵn sàng ✔");
-                    clearInterval(checkInterval);
-                }
-            } catch (err) {
-                console.log("Chưa phúc hồi -> đợi 5s nữa...");
-            }
-
-        }, 5000);
-    }
-
     function updateHeader(str) {
         headerEl.textContent = str;
     }
