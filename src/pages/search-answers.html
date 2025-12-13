@@ -31,7 +31,8 @@
 </body>
 
 <script>
-    const PING_URL = "https://ragar.onrender.com/wakeup";
+    const DOMAIN = "https://ragar.onrender.com";
+    const PING_URL = `${DOMAIN}/wakeup`;
     let checkInterval = null;
     let dotCount = 0;
     const headerEl = document.querySelector(".header");
@@ -71,7 +72,7 @@
         }
         btn_search.disabled = true;
         btn_search.textContent = "Đang tìm kiếm câu trả lời...";
-        const apiUrl = `https://ragar.onrender.com/search/${text}`;
+        const apiUrl = `${DOMAIN}/search/${text}`;
         try {
             const response = await fetch(apiUrl);
             const dataRaw = await response.json();
@@ -92,7 +93,7 @@
         e.preventDefault();
         const formData = new FormData(form);
         try {
-            const response = await fetch('https://ragar.onrender.com/uploadfile/', {
+            const response = await fetch(`${DOMAIN}/uploadfile/`, {
                 method: 'POST',
                 body: formData,
                 signal: AbortSignal.timeout(30000), // 30-second timeout
