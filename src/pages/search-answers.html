@@ -8,18 +8,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- <script src="https://kit.fontawesome.com/dae763dd72.js" crossorigin="anonymous"></script> -->
 </head>
+
 <body>
     <header class="header"></header>
     <main id="container" class="row">
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Nhập từ khóa cần tìm...">
-            <button id="searchBtn">Search</button>
-        </div>
-        <form id="upload-form" method="post" enctype="multipart/form-data" action="/upload">
+        <form id="searchForm">
+            <div id="documentList"></div>
+
+            <input type="text" id="question" placeholder="Nhập câu hỏi..." required />
+
+            <button type="submit">Search</button>
+        </form>
+        <form id="upload-form" method="post" enctype="multipart/form-data">
             <label for="file-upload" class="form-label">Select file:</label>
             <input type="file" id="file-upload" name="file" accept=".pdf" aria-describedby="file-help" />
             <div id="file-help" class="form-text">Loại tệp chấp nhận: PDF (max 10MB)</div>
-            <div class="warn">Không xử lý hình ảnh trong File, nếu PDF hoàn toàn là hình ảnh, vui lòng không Upload</div>
+            <div class="warn">Không xử lý hình ảnh trong File, nếu PDF hoàn toàn là hình ảnh, vui lòng không Upload
+            </div>
             <button id="btn-upload" type="submit">Tải lên</button>
             <div id="upload-progress" class="progress" hidden>
                 <div class="progress-bar" role="progressbar"></div>
@@ -31,6 +36,8 @@
 </body>
 
 <script>
+    // http://127.0.0.1:8000/
+    // https://ragar.onrender.com
     const DOMAIN = "https://ragar.onrender.com";
     const PING_URL = `${DOMAIN}/wakeup`;
     let checkInterval = null;
@@ -61,42 +68,44 @@
     }
     wakeServer();
 
-    const btn_search = document.getElementById("searchBtn");
-    const responseBox = document.getElementById("response");
-    btn_search.addEventListener("click", async () => {
-        const text = document.getElementById("searchInput").value.trim();
+    async function loadDocuments() {
+        const res = await fetch(`${DOMAIN}/documents/available`);
+        const documents = await res.json();
 
-        if (!text) {
-            alert("Vui lòng nhập nội dung tìm kiếm!");
-            return;
-        }
-        btn_search.disabled = true;
-        btn_search.textContent = "Đang tìm kiếm câu trả lời...";
-        const apiUrl = `${DOMAIN}/search/${text}`;
-        try {
-            const response = await fetch(apiUrl);
-            const dataRaw = await response.json();
-            // alert(dataRaw.answer);
-            responseBox.textContent = dataRaw.answer;
-        } catch (error) {
-            alert("Lỗi khi gọi API: " + error);
-        }finally{
-            btn_search.disabled = false;
-            btn_search.textContent = "Search";
-        }
-    });
+        const container = document.getElementById("documentList");
+        container.innerHTML = "";
+
+        documents.forEach(doc => {
+            const label = document.createElement("label");
+            label.style.display = "block";
+
+            label.innerHTML = `
+      <input
+        type="checkbox"
+        name="documentIds"
+        value="${doc._id}"
+      />
+      ${doc.title}
+      ${doc.author ? `- ${doc.author}` : ""}
+    `;
+
+            container.appendChild(label);
+        });
+    }
+
+    loadDocuments();
+
     const form = document.getElementById('upload-form');
     const btnUpload = document.getElementById('btn-upload');
     form.addEventListener('submit', async (e) => {
+        e.preventDefault();
         btnUpload.textContent = "Đợi xíu đang lưu file";
         btnUpload.disabled = true;
-        e.preventDefault();
         const formData = new FormData(form);
         try {
-            const response = await fetch(`${DOMAIN}/uploadfile/`, {
+            const response = await fetch(`${DOMAIN}/uploadfile`, {
                 method: 'POST',
-                body: formData,
-                signal: AbortSignal.timeout(30000), // 30-second timeout
+                body: formData
             });
 
             if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
@@ -112,6 +121,80 @@
             form.reset();
         }
     });
+
+    const searchForm = document.getElementById("searchForm");
+    const responseBox = document.getElementById("response");
+
+    searchForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const question = document.getElementById("question").value.trim();
+        if (!question) {
+            alert("Vui lòng nhập nội dung tìm kiếm!");
+            return;
+        }
+
+        const documentIds = Array.from(
+            document.querySelectorAll('input[name="documentIds"]:checked')
+        ).map(cb => cb.value);
+
+        const payload = {
+            question: question,
+            document_ids: documentIds
+        };
+
+        responseBox.innerHTML = "Đang tìm kiếm...";
+
+        try {
+            const response = await fetch(`${DOMAIN}/search`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            renderChunks(data);
+        } catch (error) {
+            console.error(error);
+            responseBox.textContent = "Lỗi khi tìm kiếm.";
+        }
+    });
+
+    function renderChunks(data) {
+        if (!data.chunks || data.chunks.length === 0) {
+            responseBox.textContent = "Không tìm thấy kết quả phù hợp.";
+            return;
+        }
+
+        let html = `<h3>Câu hỏi:</h3><p>${data.question}</p>`;
+        html += `<h3>Kết quả:</h3>`;
+
+        data.chunks.forEach((chunk, index) => {
+            html += `
+        <div class="chunk">
+            <p><strong>#${index + 1}</strong> (Trang ${chunk.page}, Score: ${chunk.score.toFixed(3)})</p>
+            <p>${chunk.text}</p>
+            ${chunk.metadata
+                    ? `<small>
+                        ${chunk.metadata.title ?? ""}
+                        ${chunk.metadata.author ? " - " + chunk.metadata.author : ""}
+                      </small>`
+                    : ""
+                }
+            <hr />
+        </div>
+        `;
+        });
+
+        responseBox.innerHTML = html;
+    }
+
 
 </script>
 
