@@ -6,196 +6,234 @@
     <link rel="stylesheet" href="../../assets/styles/style.css">
     <link rel="stylesheet" href="../styles/responsive.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- <script src="https://kit.fontawesome.com/dae763dd72.js" crossorigin="anonymous"></script> -->
 </head>
 
 <body>
     <header class="header"></header>
+
     <main id="container" class="row">
+
+        <!-- SEARCH FORM -->
         <form id="searchForm">
             <div id="documentList"></div>
 
             <input type="text" id="question" placeholder="Nhập câu hỏi..." required />
 
+            <div style="margin: 10px 0;">
+                <label>
+                    <input type="checkbox" id="useAI" />
+                    Dùng AI để trả lời
+                </label>
+            </div>
+
             <button type="submit">Search</button>
         </form>
+
+        <!-- UPLOAD FORM -->
         <form id="upload-form" method="post" enctype="multipart/form-data">
-            <label for="file-upload" class="form-label">Select file:</label>
-            <input type="file" id="file-upload" name="file" accept=".pdf" aria-describedby="file-help" />
-            <div id="file-help" class="form-text">Loại tệp chấp nhận: PDF (max 10MB)</div>
-            <div class="warn">Không xử lý hình ảnh trong File, nếu PDF hoàn toàn là hình ảnh, vui lòng không Upload
+            <label for="file-upload">Select file:</label>
+            <input type="file" id="file-upload" name="file" accept=".pdf" />
+            <div class="warn">
+                Không xử lý hình ảnh trong File, nếu PDF hoàn toàn là hình ảnh, vui lòng không Upload
             </div>
             <button id="btn-upload" type="submit">Tải lên</button>
-            <div id="upload-progress" class="progress" hidden>
-                <div class="progress-bar" role="progressbar"></div>
-            </div>
         </form>
+
+        <!-- RESPONSE -->
         <div id="response">Câu trả lời nằm ở đây!</div>
     </main>
+
     <footer class="footer"></footer>
 </body>
 
 <script>
-    // http://127.0.0.1:8000/
-    // https://ragar.onrender.com
+    // ================= CONFIG =================
     const DOMAIN = "https://ragar.onrender.com";
     const PING_URL = `${DOMAIN}/wakeup`;
-    let checkInterval = null;
-    let dotCount = 0;
+
     const headerEl = document.querySelector(".header");
+    const responseBox = document.getElementById("response");
+    const searchForm = document.getElementById("searchForm");
 
+    // ================= SERVER WAKE =================
     async function wakeServer() {
-        updateHeader("Đang đánh thức server");
-
+        headerEl.textContent = "Đang đánh thức server...";
         try {
-            const res = await fetch(PING_URL, { method: "GET" });
+            const res = await fetch(PING_URL);
             const data = await res.json();
-
-            if (data?.message) {
-                updateHeader(data?.message);
-                return true;
-            }
-        } catch (err) {
-            console.log("Server chưa sẵn sàng...", err);
+            headerEl.textContent = data?.message || "Server sẵn sàng";
+        } catch {
+            headerEl.textContent = "Server chưa sẵn sàng...";
         }
-
-        startCheckingServer();
-        return false;
-    }
-
-    function updateHeader(str) {
-        headerEl.textContent = str;
     }
     wakeServer();
 
+    // ================= LOAD DOCUMENTS =================
     async function loadDocuments() {
         const res = await fetch(`${DOMAIN}/documents/available`);
         const documents = await res.json();
 
         const container = document.getElementById("documentList");
-        container.innerHTML = "";
+        container.innerHTML = "<h4>Tài liệu:</h4>";
 
         documents.forEach(doc => {
             const label = document.createElement("label");
             label.style.display = "block";
-
             label.innerHTML = `
-      <input
-        type="checkbox"
-        name="documentIds"
-        value="${doc._id}"
-      />
-      ${doc.title}
-      ${doc.author ? `- ${doc.author}` : ""}
-    `;
-
+                <input type="checkbox" name="documentIds" value="${doc._id}" />
+                ${doc.title} ${doc.author ? `- ${doc.author}` : ""}
+            `;
             container.appendChild(label);
         });
     }
-
     loadDocuments();
 
-    const form = document.getElementById('upload-form');
-    const btnUpload = document.getElementById('btn-upload');
-    form.addEventListener('submit', async (e) => {
+    // ================= UPLOAD FILE =================
+    const uploadForm = document.getElementById("upload-form");
+    const btnUpload = document.getElementById("btn-upload");
+
+    uploadForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        btnUpload.textContent = "Đợi xíu đang lưu file";
+
         btnUpload.disabled = true;
-        const formData = new FormData(form);
+        btnUpload.textContent = "Đang upload...";
+
+        const formData = new FormData(uploadForm);
+
         try {
-            const response = await fetch(`${DOMAIN}/uploadfile`, {
-                method: 'POST',
+            const res = await fetch(`${DOMAIN}/uploadfile`, {
+                method: "POST",
                 body: formData
             });
-
-            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-            const result = await response.json();
-            console.log('Upload successful:', result);
-            alert(result.message);
-        } catch (error) {
-            console.error('Upload failed:', error);
-            alert('Upload failed. Please try again.');
+            const data = await res.json();
+            alert(data.message || "Upload thành công");
+        } catch {
+            alert("Upload thất bại");
         } finally {
-            btnUpload.textContent = "Tải lên";
             btnUpload.disabled = false;
-            form.reset();
+            btnUpload.textContent = "Tải lên";
+            uploadForm.reset();
         }
     });
 
-    const searchForm = document.getElementById("searchForm");
-    const responseBox = document.getElementById("response");
-
+    // ================= SEARCH =================
     searchForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const question = document.getElementById("question").value.trim();
-        if (!question) {
-            alert("Vui lòng nhập nội dung tìm kiếm!");
-            return;
-        }
+        const useAI = document.getElementById("useAI").checked;
 
         const documentIds = Array.from(
             document.querySelectorAll('input[name="documentIds"]:checked')
         ).map(cb => cb.value);
+
+        if (!question) {
+            alert("Vui lòng nhập câu hỏi");
+            return;
+        }
+
+        if (documentIds.length === 0) {
+            alert("Vui lòng chọn ít nhất một tài liệu");
+            return;
+        }
 
         const payload = {
             question: question,
             document_ids: documentIds
         };
 
-        responseBox.innerHTML = "Đang tìm kiếm...";
+        responseBox.innerHTML = useAI
+            ? "AI đang suy nghĩ..."
+            : "Đang tìm kiếm...";
+
+        const endpoint = useAI ? "/search/ai" : "/search";
 
         try {
-            const response = await fetch(`${DOMAIN}/search`, {
+            const res = await fetch(`${DOMAIN}${endpoint}`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            if (!res.ok) throw new Error(res.status);
 
-            const data = await response.json();
-            renderChunks(data);
-        } catch (error) {
-            console.error(error);
+            const data = await res.json();
+            useAI ? renderAIResponse(data) : renderChunks(data);
+
+        } catch (err) {
+            console.error(err);
             responseBox.textContent = "Lỗi khi tìm kiếm.";
         }
     });
 
+    // ================= RENDER NORMAL SEARCH =================
     function renderChunks(data) {
         if (!data.chunks || data.chunks.length === 0) {
-            responseBox.textContent = "Không tìm thấy kết quả phù hợp.";
+            responseBox.textContent = "Không tìm thấy kết quả.";
             return;
         }
 
-        let html = `<h3>Câu hỏi:</h3><p>${data.question}</p>`;
-        html += `<h3>Kết quả:</h3>`;
+        let html = `<h3>Câu hỏi:</h3><p>${data.question}</p><h3>Kết quả:</h3>`;
 
-        data.chunks.forEach((chunk, index) => {
+        data.chunks.forEach((c, i) => {
             html += `
-        <div class="chunk">
-            <p><strong>#${index + 1}</strong> (Trang ${chunk.page}, Score: ${chunk.score.toFixed(3)})</p>
-            <p>${chunk.text}</p>
-            ${chunk.metadata
-                    ? `<small>
-                        ${chunk.metadata.title ?? ""}
-                        ${chunk.metadata.author ? " - " + chunk.metadata.author : ""}
-                      </small>`
-                    : ""
-                }
-            <hr />
-        </div>
-        `;
+                <div class="chunk">
+                    <p><strong>#${i + 1}</strong> (Trang ${c.page}, Score ${c.score.toFixed(3)})</p>
+                    <p>${c.text}</p>
+                    <hr/>
+                </div>
+            `;
         });
 
         responseBox.innerHTML = html;
     }
 
+    // ================= RENDER AI SEARCH =================
+    function renderAIResponse(data) {
+        let html = `<h3>Câu hỏi:</h3><p>${data.question}</p>`;
 
+        if (!data.answer || !data.answer.results?.length) {
+            html += `<p><em>AI không đủ dữ kiện để trả lời.</em></p>`;
+        } else {
+            data.answer.results.forEach(r => {
+                html += `
+                    <div class="ai-answer">
+                        <p><strong>Trả lời:</strong> ${r.bot_answer}</p>
+                        ${r.last_choice ? `<p><strong>Đáp án:</strong> ${r.last_choice}</p>` : ""}
+                `;
+
+                if (r.quote_from?.length) {
+                    html += `<details><summary>Trích dẫn</summary>`;
+                    r.quote_from.forEach(q => {
+                        html += `
+                            <p>
+                                <em>${q.name_document}</em> (Trang ${q.page})<br/>
+                                "${q.texts}"
+                            </p>
+                        `;
+                    });
+                    html += `</details>`;
+                }
+
+                html += `</div><hr/>`;
+            });
+        }
+
+        if (data.chunks?.length) {
+            html += `<h4>Ngữ cảnh sử dụng:</h4>`;
+            data.chunks.forEach((c, i) => {
+                html += `
+                    <div class="chunk">
+                        <p><strong>#${i + 1}</strong> (Trang ${c.page}, Score ${c.score.toFixed(3)})</p>
+                        <p>${c.text}</p>
+                    </div>
+                `;
+            });
+        }
+
+        responseBox.innerHTML = html;
+        responseBox.scrollIntoView({ behavior: "smooth" });
+    }
 </script>
 
 </html>
