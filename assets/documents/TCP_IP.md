@@ -1,6 +1,9 @@
-## Các thành phần cần có để tạo được một ứng dụng TCP\IP đơn giản
+# TCP\IP đơn giản
 > [!NOTE]
-> Tài liệu chỉ để tham khảo
+> Đây là tài liệu tham khảo cách xây dựng một ứng dụng TCP\IP đơn giản.
+> 
+
+## Các thành phần cần có để tạo được một ứng dụng TCP\IP đơn giản
 
 ### 1. Thread
 - Thread để tạo luồng chạy song song với luồng chính (main thread)
@@ -58,15 +61,19 @@ public class Main {
     - `Port`: Cần có để 2 kênh `socket` tìm thấy nhau.
     - `IP Adress`: Cần có để 2 đối tượng tìm thấy, định danh nhau.
 
-### 3. TCP
+### 3. Giao thức
+*Các giao thức mạng để xây dựng ứng dụng, tùy vào nhu cầu mà mỗi ứng dụng sẽ cần các giao thức khác nhau*
+#### 3.1 TCP
 - TCP là cơ chế có kết nối, sử dụng kết nối ảo của 2 `Socket` để duy trì kết nối.
 - Khung của ứng dụng TCP:
+    + Flow: Server start (port) -> Client start (IP server, port) -> Server acept -> Handle
+
 > Server: Lắng nghe, xử lý các yêu cầu của `Client`
 ```java
 import java.net.*;
 import java.io.*;
 
-public class ServerTCP {
+public abstract class ServerTCP {
 
     private ServerSocket ss;
     private int port;
@@ -104,7 +111,7 @@ public class ServerTCP {
         try (DataInputStream in = new DataInputStream(
                 new BufferedInputStream(s.getInputStream())); 
             DataOutputStream output = new DataOutputStream(s.getOutputStream()); ) {
-            while (true) {
+            while (!s.isClosed()) {
                 String message = in.readUTF();
                 String data = processClientRequest(message);
                 output.writeUTF(data);
@@ -114,15 +121,8 @@ public class ServerTCP {
     }
 
     // Hàm xử lý dữ liệu Client gửi lên, tính PTB2, ...
-    private String processClientRequest(String data) {
-        // Xử lý yêu cầu của người dùng
-        return processedData;
-    }
+    protected abstract String processClientRequest(String data);
 
-    // Main chạy server
-    public static void main(String[] args) {
-        new ServerTCP().startServer(3636);
-    }
 }
 ``` 
 
@@ -166,7 +166,7 @@ public class ClientTCP {
     // Hàm lắng nghe dữ liệu từ Server
     private void listenServer() {
         try {
-            while (true) {
+            while (!this.socket.isClosed()) {
                 String response = in.readUTF();
                 processServerResponse(response);
             }
@@ -178,7 +178,7 @@ public class ClientTCP {
     // Hàm xử lý gửi yêu cầu
     private void sendRequest() {
         try {
-            while (true) {
+            while (!this.socket.isClosed()) {
                 String message = getInput();
                 out.writeUTF(message);
                 out.flush();
@@ -206,5 +206,166 @@ public class ClientTCP {
 }
 ```
 
+#### 3.2 UDP
+- UDP là cơ chế không kết nối, bên gửi chỉ gửi dữ liệu đến IP + Port, không thiết lập hay duy trì trạng thái kết nối với bên nhận.
+
+- Khung:
+    + Flow:
+        - Server start (port) → Receive datagram → Handle
+        - Client start → Send datagram (IP Server, port)
+
+> Server: Khởi tạo socket, gán cổng nhận/gửi dữ liệu
+```java
+import java.net.*;
+
+public abstract class ServerUDP {
+
+    private DatagramSocket socket;
+    private boolean running = false;
+
+    public void startServer(int port) {
+        try {
+            socket = new DatagramSocket(port);
+            running = true;
+            new Thread(()->{this.listen();}).start();
+        } catch (Exception ignored) {}
+    }
+
+    public void closeServer() {
+        running = false;
+        if (socket != null && !socket.isClosed()) {
+            socket.close();
+        }
+    }
+
+    // Lắng nghe gói tin gửi tới
+    private void listen() {
+        while (running) {
+            try {
+                byte[] buf = new byte[1024];
+                DatagramPacket packet =
+                        new DatagramPacket(buf, buf.length);
+
+                socket.receive(packet);
+
+                // Mỗi request một Thread để tăng tốc xử lý
+                new Thread(() -> handlePacket(packet)).start();
+
+            } catch (Exception ignored) {}
+        }
+    }
+
+    // Xử lý một gói tin
+    private void handlePacket(DatagramPacket packet) {
+        try {
+            String request = new String(
+                    packet.getData(), 0, packet.getLength()
+            );
+
+            String response = processRequest(request);
+            byte[] out = response.getBytes();
+
+            DatagramPacket reply = new DatagramPacket(
+                    out,
+                    out.length,
+                    packet.getAddress(),
+                    packet.getPort()
+            );
+
+            socket.send(reply);
+
+        } catch (Exception ignored) {}
+    }
+
+    // Hàm chưa logic xử lý
+    protected abstract String processRequest(String data);
+}
+
+```
+
+> Client: Khởi tạo, gửi/nhận dữ liệu
+```java
+import java.net.*;
+import java.util.Scanner;
+
+public class ClientUDP {
+    private DatagramSocket socket;
+    private InetAddress address;
+    private int port;
+
+    public void startSocket(String ip, int port) {
+        try {
+            this.port = port;
+            this.socket = new DatagramSocket();
+            this.address = InetAddress.getByName(ip);
+        } catch (Exception ignored) {}
+    }
+
+    public void handlePacket() {
+        try {
+            while (!this.socket.isClosed()) {
+
+                // Gửi dữ liệu
+                byte[] outBuf = getInput().getBytes();
+                DatagramPacket request =
+                        new DatagramPacket(outBuf, outBuf.length, address, port);
+                socket.send(request);
+
+                // Nhận phản hồi
+                byte[] inBuf = new byte[1024];
+                DatagramPacket reply =
+                        new DatagramPacket(inBuf, inBuf.length);
+                socket.receive(reply);
+
+                String received = new String(
+                        reply.getData(), 0, reply.getLength()
+                );
+
+                processResponse(received);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public void processResponse(String data) {
+        // Xử lý dữ liệu trả về (in ra, parse, ...)
+        System.out.println("Server: " + data);
+    }
+
+    public void close() {
+        if (socket != null && !socket.isClosed()) {
+            socket.close();
+        }
+    }
+
+    private String getInput() {
+        Scanner sc = new Scanner(System.in);
+        return sc.nextLine();
+    }
+}
+
+```
+
+> [!NOTE]
+> Để tránh README dài dòng, các Exception được bỏ qua tuy nhiên khi triển khai phải xử lý Exception tránh nuốt lỗi.
+
 > [!TIP]
-> Có thể tách các hàm xử lý dữ liệu, ... ra class riêng để không phình to class chính
+> Có thể tách các hàm xử lý dữ liệu, ... ra class riêng để không phình to class chính.
+
+## Tổng kết
+- Thread: Phục vụ việc xử lý song song, tăng tốc độ phản hồi.
+    + Nguyên do: 
+        - Các hàm có thuộc tính `blocking` (accept, receive, read,...) chặn luồng chạy.
+        - Thời gian phản hồi của một yêu cầu phụ thuộc hoàn toàn vào thời gian xử lý của chính nó 
+        cộng với thời gian phản hồi của tác vụ trước. Nếu một tác vụ có thời gian là 1 đi sau tác vụ có thời gian phản hồi là 100, thời gian phản hồi thực tế là 101.
+- Socket: API cần thiết để giao tiếp mạng.
+- Giao thức:
+    - Các dữ liệu chung: Cổng socket (`Port`), Địa chỉ IP (`IP address`)
+    - Các hàm/phương thức cần thiết:
+        - start(): Hàm mở kết nối socket.
+        - stop(): Hàm đóng kết nối socket.
+        - listen(): Hàm lắng nghe các yêu cầu, dữ liệu.
+        - handle(): Hàm xử lý I/O cho các yêu cầu, dữ liệu.
+        - process(): Hàm tiện ích, chứa logic xử lý yêu cầu, dữ liệu nhằm tách biệt vài trò.
+    - ***listen/handle/process có thể gộp chung thành một hàm nếu muốn***
+
+## Ví dụ
