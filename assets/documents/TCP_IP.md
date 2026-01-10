@@ -360,12 +360,21 @@ public class ClientUDP {
 - Socket: API cần thiết để giao tiếp mạng.
 - Giao thức:
     - Các dữ liệu chung: Cổng socket (`Port`), Địa chỉ IP (`IP address`)
-    - Các hàm/phương thức cần thiết:
-        - start(): Hàm mở kết nối socket.
-        - stop(): Hàm đóng kết nối socket.
-        - listen(): Hàm lắng nghe các yêu cầu, dữ liệu.
-        - handle(): Hàm xử lý I/O cho các yêu cầu, dữ liệu.
-        - process(): Hàm tiện ích, chứa logic xử lý yêu cầu, dữ liệu nhằm tách biệt vài trò.
-    - ***listen/handle/process có thể gộp chung thành một hàm nếu muốn***
+    - Các hàm/phương thức cần thiết ở `server`:
+        - `start()`: Hàm mở kết nối socket.
+        - `stop()`: Hàm đóng kết nối socket.
+        - `listen()`: Hàm lắng nghe các yêu cầu, dữ liệu.
+        - `handle()`: Hàm xử lý I/O cho các yêu cầu, dữ liệu.
+        - `process()`: Hàm tiện ích, chứa logic xử lý yêu cầu, dữ liệu nhằm tách biệt vài trò.
 
-## Ví dụ
+    ***listen/handle/process có thể gộp chung thành một hàm nếu muốn***
+
+    - Các hàm/phương thức cần thiết ở `client`:
+        - `start()`: Hàm mở kết nối socket.
+        - `stop()`: Hàm đóng kết nối socket.
+        - `listen()`: Hàm lắng nghe phản hồi.
+        - `send()`: Hàm gửi dữ liệu, yêu cầu.
+        - `process()`: Hàm tiện ích, chứa logic xử lý dữ liệu trả về.
+        - `getInput()`: Hàm tiện ích lấy dữ liệu để gửi đi.
+        
+    ***có thể gộp chung các hàm nếu muốn***
