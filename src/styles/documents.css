@@ -1,0 +1,104 @@
+/* Base */
+.markdown-body {
+    box-sizing: border-box;
+    max-width: 100%;
+    padding: 1rem;
+    font-size: 16px;
+    line-height: 1.7;
+    word-wrap: break-word;
+}
+
+/* Headings */
+.markdown-body h1 {
+    font-size: 1.6rem;
+}
+.markdown-body h2 {
+    font-size: 1.4rem;
+}
+.markdown-body h3 {
+    font-size: 1.2rem;
+}
+
+/* Paragraph */
+.markdown-body p {
+    margin: 0.8em 0;
+}
+
+/* Lists */
+.markdown-body ul,
+.markdown-body ol {
+    padding-left: 1.2rem;
+}
+
+/* Code block */
+.markdown-body pre {
+    overflow-x: auto;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+/* Inline code */
+.markdown-body code {
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+}
+
+/* Tables (mobile friendly) */
+.markdown-body table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Images */
+.markdown-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+/* Blockquote */
+.markdown-body blockquote {
+    padding: 0.6rem 1rem;
+    border-left: 4px solid #0969da;
+    margin: 1rem 0;
+}
+
+@media (max-width: 600px) {
+    .markdown-body {
+        font-size: 15px;
+        padding: 0.8rem;
+    }
+
+    .markdown-body h1 {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .markdown-body {
+        font-size: 15px;
+        padding: 0.8rem;
+    }
+
+    .markdown-body h1 {
+        font-size: 1.4rem;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .markdown-body {
+        background: #0d1117;
+        color: #c9d1d9;
+    }
+
+    .markdown-body a {
+        color: #58a6ff;
+    }
+
+    .markdown-body pre {
+        background: #161b22;
+    }
+}
