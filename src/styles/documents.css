@@ -87,18 +87,3 @@
         font-size: 1.4rem;
     }
 }
-
-@media (prefers-color-scheme: dark) {
-    .markdown-body {
-        background: #0d1117;
-        color: #c9d1d9;
-    }
-
-    .markdown-body a {
-        color: #58a6ff;
-    }
-
-    .markdown-body pre {
-        background: #161b22;
-    }
-}
